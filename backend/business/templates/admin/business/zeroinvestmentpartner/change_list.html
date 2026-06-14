@@ -1,0 +1,332 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_list admin_urls %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    /* Premium panel visual styles */
+    #custom-filters-section, #changelist-history {
+        background: linear-gradient(145deg, #1b1b1e, #232328) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Left accent glow border */
+    #custom-filters-section::before, #changelist-history::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 3px !important;
+        height: 100% !important;
+        background: linear-gradient(180deg, #00adb5, #0077b6) !important;
+    }
+    #changelist-history::before {
+        background: linear-gradient(180deg, #ffb703, #fb8500) !important; /* Golden accent glow for History */
+    }
+
+    /* Soft pulse micro-animation for active indicator */
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #00adb5;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        vertical-align: middle;
+        box-shadow: 0 0 0 rgba(0, 173, 181, 0.4);
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(0, 173, 181, 0.7);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 6px rgba(0, 173, 181, 0);
+        }
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(0, 173, 181, 0);
+        }
+    }
+
+    /* Filters row styling */
+    .filters-container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important; /* Force a single row */
+        gap: 10px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .filter-group {
+        flex: 1 1 0% !important; /* Equal distribution stretching full width */
+        min-width: 0 !important; /* Allow shrinking below min-content width */
+        background: rgba(30, 30, 35, 0.6) !important;
+        padding: 8px 10px !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.03) !important;
+        box-sizing: border-box !important;
+    }
+    .filter-group h3 {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+    }
+    
+    /* Action History badges and log cards styling */
+    .action-badge {
+        font-weight: bold !important;
+        font-size: 9px !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        color: #fff !important;
+        display: inline-block !important;
+        letter-spacing: 0.5px !important;
+        text-transform: uppercase !important;
+    }
+    .badge-add {
+        background-color: #00adb5 !important;
+    }
+    .badge-change {
+        background-color: #ffb703 !important;
+    }
+    .badge-delete {
+        background-color: #ff5555 !important;
+    }
+    
+    /* Export CSV Button styling */
+    .export-csv-btn {
+        background: linear-gradient(135deg, #00adb5, #0077b6) !important;
+        color: #fff !important;
+        font-size: 11px !important;
+        font-weight: bold !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        padding: 5px 12px !important;
+        border-radius: 6px !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 10px rgba(0, 173, 181, 0.2) !important;
+    }
+    .export-csv-btn:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 15px rgba(0, 173, 181, 0.4) !important;
+        background: linear-gradient(135deg, #00c2cb, #008cc2) !important;
+        color: #fff !important;
+    }
+    
+    /* Action history list cards */
+    .history-item {
+        margin-bottom: 10px !important;
+        background: rgba(18, 18, 20, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.02) !important;
+        border-radius: 8px !important;
+        padding: 10px 12px 10px 15px !important;
+        font-size: 12px !important;
+        color: #ccc !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    .history-item:hover {
+        transform: translateY(-2px) !important;
+        background: rgba(18, 18, 20, 0.7) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    /* Glowing left border indicator for history items based on operation type */
+    .history-item::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 3px !important;
+        height: 100% !important;
+    }
+    .history-item.item-add::before {
+        background-color: #00adb5 !important;
+    }
+    .history-item.item-change::before {
+        background-color: #ffb703 !important;
+    }
+    .history-item.item-delete::before {
+        background-color: #ff5555 !important;
+    }
+    
+    
+    /* Ensure the main form occupies 100% width in its container */
+    #changelist-form {
+        width: 100% !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Custom scrollbars inside history list */
+    .history-list {
+        max-height: 480px !important;
+        overflow-y: auto !important;
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255, 255, 255, 0.1) transparent !important;
+    }
+    .history-list::-webkit-scrollbar {
+        width: 4px !important;
+    }
+    .history-list::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 4px !important;
+    }
+
+    /* Responsive side-by-side columns */
+    @media (max-width: 992px) {
+        .main-columns-container {
+            flex-direction: column !important;
+        }
+        #changelist-history {
+            width: 100% !important;
+            margin-top: 20px !important;
+        }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    
+    <!-- Object Tools (Add button, etc.) -->
+    {% block object-tools %}
+      {% if has_add_permission %}
+        <ul class="object-tools">
+          {% block object-tools-items %}
+            <li>
+              <a href="{% url opts|admin_urlname:'add' %}{% if is_popup %}?_popup=1{% endif %}" class="addlink">
+                {% blocktrans with name=opts.verbose_name %}Add {{ name }}{% endblocktrans %}
+              </a>
+            </li>
+          {% endblock %}
+        </ul>
+      {% endif %}
+    {% endblock %}
+    
+    {% if cl.formset and cl.formset.errors %}
+        <p class="errornote">
+        {% if cl.formset.total_error_count == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
+        </p>
+        {{ cl.formset.non_form_errors }}
+    {% endif %}
+    
+    <!-- MAIN WORKSPACE LAYOUT -->
+    <div id="changelist" style="display: flex; flex-direction: column; gap: 18px; width: 100%; box-sizing: border-box;">
+      
+      <!-- 1. FILTER SECTION (TOP) -->
+      {% if cl.has_filters %}
+        <div id="custom-filters-section" style="width: 100%; padding: 15px 18px 12px 18px; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center;">
+              <span class="pulse-dot"></span>
+              <h2 style="margin: 0; padding: 0; font-size: 13px; color: #fff; background: none; border: none; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px;">
+                {% translate 'Live Filters' %}
+              </h2>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <!-- Export CSV Button -->
+              <a href="export-csv/{{ cl.get_query_string }}" class="export-csv-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export CSV
+              </a>
+              
+              {% if cl.has_active_filters %}
+                <h3 style="margin: 0; padding: 0; font-size: 11px; background: none; border: none;">
+                  <a href="{{ cl.clear_all_filters_qs }}" style="color: #ff5555; text-decoration: none; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">&#10006; {% translate 'Reset' %}</a>
+                </h3>
+              {% endif %}
+            </div>
+          </div>
+          <div class="filters-container">
+            {% for spec in cl.filter_specs %}
+              <div class="filter-group">
+                {% admin_list_filter cl spec %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      
+      <!-- 2. SEARCH BAR & DATE HIERARCHY (MIDDLE, FULL WIDTH) -->
+      <div style="width: 100%; box-sizing: border-box;">
+        {% block search %}{% search_form cl %}{% endblock %}
+        {% block date_hierarchy %}{% date_hierarchy cl %}{% endblock %}
+      </div>
+      
+      <!-- 3. DATA'S (LEFT) & HISTORY (RIGHT) COLUMN LAYOUT -->
+      <div style="display: flex; gap: 20px; width: 100%; box-sizing: border-box;" class="main-columns-container">
+        
+        <!-- DATA TABLE FORM (LEFT COLUMN) -->
+        <div style="flex: 1; min-width: 0;" class="data-table-column">
+          <form id="changelist-form" method="post"{% if cl.formset and cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %} novalidate>{% csrf_token %}
+            {% if cl.formset %}
+              <div>{{ cl.formset.management_form }}</div>
+            {% endif %}
+
+            {% block result_list %}
+              {% if action_form and actions_on_top and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+              {% result_list cl %}
+              {% if action_form and actions_on_bottom and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+            {% endblock %}
+            
+            {% block pagination %}{% pagination cl %}{% endblock %}
+          </form>
+        </div>
+        
+        <!-- HISTORY SIDEBAR (RIGHT COLUMN) -->
+        <div id="changelist-history" style="width: 280px; flex-shrink: 0; padding: 15px; box-sizing: border-box; align-self: start;">
+          <h2 style="margin: 0 0 12px 0; padding: 0 0 6px 0; font-size: 13px; color: #fff; border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; background: none; border-left: none;">
+              {% translate 'Action History' %}
+          </h2>
+          <ul class="history-list" style="margin: 0; padding: 0; list-style-type: none;">
+              {% for action in recent_actions %}
+                  <li class="history-item {% if action.is_addition %}item-add{% elif action.is_change %}item-change{% else %}item-delete{% endif %}">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                          <span class="action-badge {% if action.is_addition %}badge-add{% elif action.is_change %}badge-change{% else %}badge-delete{% endif %}">
+                              {% if action.is_addition %}ADD{% elif action.is_change %}EDIT{% else %}DEL{% endif %}
+                          </span>
+                          <span style="font-size: 10px; color: #6c757d;">
+                              {{ action.action_time|date:"d M H:i" }}
+                          </span>
+                      </div>
+                      <div style="font-weight: 600; color: #e0e0e0; word-break: break-all; margin-bottom: 3px; font-size: 12px;">
+                          {{ action.object_repr }}
+                      </div>
+                      <div style="font-size: 11px; color: #8a8a93;">
+                          by <strong style="color: #ffffff;">{{ action.user.username }}</strong>
+                          {% if action.change_message %}
+                              <span style="display: block; font-size: 10px; color: #00adb5; font-style: italic; margin-top: 5px; padding-left: 6px; border-left: 2px solid #00adb5; line-height: 1.3;">
+                                  {{ action.get_change_message }}
+                              </span>
+                          {% endif %}
+                      </div>
+                  </li>
+              {% empty %}
+                  <li style="font-size: 12px; color: #888; text-align: center; padding: 20px 0; background: rgba(18, 18, 20, 0.4); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.05);">
+                      No recent admin actions.
+                  </li>
+              {% endfor %}
+          </ul>
+        </div>
+        
+      </div>
+      
+    </div>
+  </div>
+{% endblock %}

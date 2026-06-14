@@ -1,0 +1,11 @@
+{% load i18n %}
+<h3 style="margin: 0 0 5px 0; padding: 0 0 3px 0; font-size: 11px; color: #00adb5; border-bottom: 1px solid #333; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+    {% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}
+</h3>
+<select onchange="window.location = this.value;" style="width: 100%; padding: 4px 6px; border-radius: 4px; border: 1px solid #444; background-color: #2c2c2c; color: #e0e0e0; font-size: 12px; cursor: pointer; box-sizing: border-box;">
+    {% for choice in choices %}
+        <option value="{{ choice.query_string|safe }}" {% if choice.selected %}selected{% endif %}>
+            {{ choice.display }}
+        </option>
+    {% endfor %}
+</select>
